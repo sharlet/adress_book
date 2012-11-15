@@ -1,0 +1,4 @@
+name = adress_book
+description = Модуль Adress book.
+core = 7.x
+dependencies[] = taxonomy

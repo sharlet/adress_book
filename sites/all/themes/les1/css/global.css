@@ -1,0 +1,36 @@
+/* This file will hold styles for the mobile version of your website (mobile first). */
+/* This also can include ANY global CSS that applies site-wide. Unless overwritten by a more specific style rule, CSS declarations in global.css will apply site-wide. */
+nav {
+  text-align    : center;
+  margin        : 10px;
+  border-bottom : 1px solid #3399CC;
+}
+
+ul.main-menu {
+  list-style-type : none;
+  font-size       : 30px;
+  margin          : 0;
+  padding         : 0;
+  text-transform  : lowercase;
+}
+
+ul.main-menu li {
+  display : inline-block;
+  margin  : 0;
+  padding : 0;
+}
+
+ul.main-menu li a {
+  display         : block;
+  margin          : 0;
+  padding         : 5px;
+  text-decoration : underline;
+}
+
+ul.main-menu li a:hover {
+  color : #3399CC;
+}
+
+ul.main-menu li a.active:hover {
+  color : #444;
+}

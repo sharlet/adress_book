@@ -1,0 +1,102 @@
+/* This file will hold styles for the mobile version of your website (mobile first). */
+/* This also can include ANY global CSS that applies site-wide. Unless overwritten by a more specific style rule, CSS declarations in global.css will apply site-wide. */
+body {
+  background: #939598;
+}
+.container-12 {
+  background: #fff;
+}
+.region-user-second-inner .menu li {
+  list-style:none;
+}
+
+.region-user-second-inner .menu li a:link,
+.region-user-second-inner .menu li a:visited {
+  color : #5F5F5F;
+  text-decoration : none;
+}
+
+.region-menu-inner {
+  background: #939598;
+  height : 22px;
+  padding : 3px;
+}
+
+.main-menu li a {
+  font-size: 14px;
+  color:#fff;
+  text-decoration : none
+}
+
+.main-menu li a:hover,
+.breadcrumb a:hover,
+.region-user-second-inner .menu li a:hover{
+  color : #FF54BD;
+}
+#block-search-form {
+  float      : right;
+  margin-top : -22px !important;
+}
+
+.breadcrumb {
+  margin-left : 20%;
+  margin-top  : 2%;
+}
+
+
+.region-sidebar-first-inner #block-system-navigation ul li a{
+  text-decoration : none;
+  color:#000;
+  font-size: 18px;
+  font-weight: bold;
+
+}
+
+.region-sidebar-first-inner #block-system-navigation ul li a:hover {
+  color           : #FF54BD;
+  font-weight     : bold;
+}
+
+.region-sidebar-first-inner #block-system-navigation ul li {
+  border-bottom:1px solid #D8D9DA;
+  margin-bottom : 6px !important;
+}
+
+.region-sidebar-first-inner #block-system-navigation ul li ul li a {
+  text-decoration : none;
+  color           : #AAAAAA;
+  font-size       : 14px;
+
+
+}
+
+.region-sidebar-first-inner #block-system-navigation ul li ul li {
+  list-style : none;
+}
+
+.breadcrumb a {
+  color : #ffffff;
+  background : #939598;
+}
+
+#block-user-login {
+  border : 1px solid #D8D9DA;
+  width:200px;
+}
+
+.form-item-name,
+.form-item-pass {
+  padding-left: 20px;
+}
+
+#block-system-main img {
+  margin-left:10px;
+}
+.link-edit-class {
+    padding-right: 5px;;
+}
+.form-item-category {
+    display: inline;
+    padding-bottom: 5px;;
+}
+

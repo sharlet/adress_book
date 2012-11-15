@@ -1,0 +1,135 @@
+<?php
+/**
+ * Implements the hook_schema().
+ */
+function adress_book_schema() {
+   $schema['adress_book_member'] = array(
+     'description' => 'The table for adress book members.',
+     'fields' => array(
+       'mid' => array(
+         'description' => 'The primary identifier for a member.',
+         'type' => 'serial',
+         'unsigned' => TRUE,
+         'not null' => TRUE
+       ),
+       'surname' => array(
+         'description' => 'Surname.',
+         'type' => 'varchar',
+         'length' => 150,
+         'default' => NULL,
+       ),
+       'first_name' => array(
+         'description' => 'First name.',
+         'type' => 'varchar',
+         'length' => 150,
+         'default' => NULL,
+       ),
+       'photo' => array(
+         'description' => 'Photo',
+         'type' => 'varchar',
+         'length' => 150,
+         'default' => NULL,
+       ),
+       'email' => array(
+         'description' => 'Email.',
+         'type' => 'varchar',
+         'length' => 150,
+         'not null' => TRUE,
+       ),
+       'mobile' => array(
+          'description' => 'Mobile.',
+          'type' => 'int',
+          'default' => NULL
+        ),
+       'active_roles' => array(
+         'description' => 'active_roles.',
+         'type' => 'varchar',
+         'length' => 255,
+         'default' => ''
+       ),
+       'company' => array(
+         'description' => 'company.',
+         'type' => 'varchar',
+         'length' => 255,
+         'default' => ''
+       ),
+       'category' => array(
+         'description' => 'category.',
+         'type' => 'varchar',
+         'length' => 100,
+         'default' => ''
+       ),
+       'uid' => array(
+         'description' => 'owner id.',
+         'type' => 'int',
+         'not null' => TRUE,
+         'unsigned' => TRUE
+       ),
+     ),
+     'unique keys' => array(
+       'mid' => array('mid')
+     ),
+     /*'foreign keys' => array(
+       'users_owner' => array(
+         'table' => 'users',
+         'columns' => array('uid' => 'uid'),
+       ),
+     ),*/
+     'primary key' => array('mid'),
+   );
+   return $schema;
+}
+function adress_book_install(){
+    $transaction = db_transaction();
+    try{
+        variable_set('adress_book_member_category', 'abm_group');
+        $vid =  db_insert('taxonomy_vocabulary')
+        ->fields(array(
+        'name' => 'abm_group',
+        'machine_name' => 'abm_group',
+        'description' => 'abm_group',
+        'hierarchy' => 0,
+        'module' => 'adress_book',
+        'weight' => 0,
+
+    ))
+        ->execute();
+        $terms = array('friend', 'family', 'other');
+        foreach ($terms as $term) {
+            db_insert('taxonomy_term_data')
+            ->fields(array(
+            'vid' => $vid,
+            'name' => $term,
+            'description' => $term,
+            'format' => 'filtered_html',
+            'weight' => 0,
+
+        ))
+            ->execute();
+    }
+     }catch (Exception $e) {
+        $transaction->rollback();
+        watchdog_exception('adress_book_member categoty', $e);
+        throw $e;
+     }
+}
+function adress_book_uninstall(){
+    $transaction = db_transaction();
+    try{
+        $terms = array('friend', 'family', 'other');
+        $vocabulary = taxonomy_vocabulary_machine_name_load(variable_get('adress_book_member_category'));
+        db_delete('taxonomy_term_data')
+        ->condition('name', $terms, 'IN')
+        ->condition('vid',$vocabulary->vid)
+        ->execute();
+
+        db_delete('taxonomy_vocabulary')
+        ->condition('name', variable_get('adress_book_member_category'))
+        ->execute();
+   }catch (Exception $e) {
+        $transaction->rollback();
+        watchdog_exception('adress_book_member categoty', $e);
+        throw $e;
+    }
+}
+

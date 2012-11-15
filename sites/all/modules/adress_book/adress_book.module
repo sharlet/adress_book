@@ -1,0 +1,427 @@
+<?php
+/**
+ * Implements hook_help.
+ *
+ * Displays help and module information.
+ *
+ * @param path
+ *   Which path of the site we're using to display help
+ * @param arg
+ *   Array that holds the current path as returned from arg() function
+ */
+function adress_book_help($path, $arg) {
+  switch ($path) {
+    case "admin/help#adress_book":
+      return '<p>' . t("This is Olesia's adress book") . '</p>';
+      break;
+  }
+}
+
+function adress_book_permission() {
+  return array(
+    'submit_form_add_member' => array(
+      'title' => t('Submit form add member'),
+      'description' => t('Perform a submit form add member.')
+    ),
+    'list_members' => array(
+      'title' => t('list of members'),
+      'description' => t('list of members.')
+    ),
+  );
+}
+
+function adress_book_menu() {
+  $items = array();
+
+  $items['adress_book'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Address book',
+    'description' => 'Address book.',
+    //'page callback' => 'adress_book_view',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adress_book_view'),
+    'access arguments' => array('list_members'),
+  );
+
+  $items['adress_book/list'] = array(
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'title' => 'List',
+    'description' => 'Address book.',
+    'access arguments' => array('list_members'),
+  );
+
+  $items['adress_book/add'] = array(
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Address book add members',
+    'description' => 'Address book add members.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adress_book_settings'),
+    'access callback' => 'user_access',
+    'access arguments' => array('submit_form_add_member'),
+  );
+
+  $items['adress_book/edit/%adress_book_member'] = array(
+    'title' => 'Address book edit members',
+    'description' => 'Address book edit members.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adress_book_settings', 2),
+    'access callback' => 'user_access',
+    'access arguments' => array('submit_form_add_member'),
+  );
+
+  $items['adress_book/delete/%'] = array(
+    'description' => 'Address book delete member.',
+    'page callback' => 'adress_book_delete_member',
+    'page arguments' => array(2),
+    'access callback' => 'user_access',
+    'access arguments' => array('submit_form_add_member'),
+  );
+
+  return $items;
+}
+
+function adress_book_settings($form, &$form_state, $member = NULL) {
+
+  $form['mid'] = array(
+    '#type' => 'hidden',
+    '#title' => t('Id of member'),
+    '#default_value' => !empty($member->mid) ? $member->mid : '',
+  );
+
+  $form['picture_current'] = array(
+    '#theme' => 'image_style',
+    '#style_name' => 'thumbnail',
+    '#path' => !empty($member->photo) ? $member->photo : null,
+  );
+
+  $form['photo_upload'] = array(
+    '#type' => 'file',
+    '#title' => t('Upload photo'),
+    '#size' => 48,
+    '#description' => t('Your virtual face or picture. Pictures larger than @dimensions pixels will be scaled down.', array('@dimensions' => variable_get('user_picture_dimensions', '85x85'))) . ' ' . filter_xss_admin(variable_get('user_picture_guidelines', '')),
+  );
+
+  $form['surname'] = array(
+    '#title' => t('Surname'),
+    '#description' => t('Surname'),
+    '#type' => 'textfield',
+    '#default_value' => !empty($member->surname) ? $member->surname : '',
+  );
+
+  $form['first_name'] = array(
+    '#title' => t('First name'),
+    '#description' => t('First name'),
+    '#type' => 'textfield',
+    '#default_value' => !empty($member->first_name) ? $member->first_name : '',
+  );
+
+  $form['email'] = array(
+    '#title' => t('Email'),
+    '#description' => t('Email'),
+    '#type' => 'textfield',
+    '#required' => TRUE,
+    '#default_value' => !empty($member->email) ? $member->email : '',
+  );
+
+  $form['mobile'] = array(
+    '#title' => t('mobile'),
+    '#description' => t('mobile'),
+    '#type' => 'textfield',
+    '#default_value' => !empty($member->mobile) ? $member->mobile : '',
+  );
+
+  $form['company'] = array(
+    '#title' => t('Company'),
+    '#description' => t('Company'),
+    '#type' => 'textfield',
+    '#default_value' => !empty($member->company) ? $member->company : '',
+  );
+
+  $form['active_roles'] = array(
+    '#title' => t('Active role in company'),
+    '#description' => t('Email'),
+    '#type' => 'textfield',
+    '#default_value' => !empty($member->active_roles) ? $member->active_roles : '',
+  );
+
+  $options = get_all_categories();
+  $form['category'] = array(
+    '#title' => t('Category'),
+    '#description' => t('Category'),
+    '#type' => 'select',
+    '#options' => $options,
+    '#default_value' => !empty($member->category) ? $member->category : '',
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+}
+
+function get_all_categories() {
+  $options = array();
+  $vocabulary = taxonomy_vocabulary_machine_name_load('abm_group');
+  $terms = taxonomy_get_tree($vocabulary->vid);
+  foreach ($terms as $term) {
+    $options[$term->tid] = $term->name;
+  }
+  return $options;
+}
+
+function adress_book_member_load($mid) {
+
+  global $user;
+
+  return db_select('adress_book_member', 'abm')
+    ->fields('abm')
+      ->condition('mid', $mid)
+      ->condition('uid', $user->uid)
+    ->execute()
+    ->fetchObject();
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ * @return bool
+ * handler validation adressbook_settings
+ */
+function adress_book_settings_validate($form, &$form_state) {
+  if (!is_numeric($form_state['values']['mobile'])) {
+    form_set_error('mobile', t('Wrong mobile phone'));
+  }
+
+  if (!preg_match("/[A-Za-z0-9_-]+([\.]{1}[A-Za-z0-9_-]+)*@[A-Za-z0-9-]+([\.]{1}[A-Za-z0-9-]+)+/", $form_state['values']['email'])) {
+    form_set_error('email', t('Wrong email'));
+  }
+
+}
+
+function adress_book_settings_submit($form, &$form_state) {
+  global $user;
+  if (empty($user->uid)) {
+    return;
+  }
+  $file = file_save_upload('photo_upload', array(), 'public://', FILE_EXISTS_RENAME);
+  if ($file) {
+    //$qwe1 = 'public://' . variable_get('photo_upload', '');
+    $doc_url = file_create_url($file->uri);
+    $file->status = FILE_STATUS_PERMANENT;
+    file_save($file);
+    $form_state['values']['photo_upload'] = $file->uri;
+  }
+  else {
+    drupal_set_message(t('Please select a document to upload.'), 'error');
+  }
+  $adress_book_member = array(
+    'surname' => $form_state['values']['surname'],
+    'first_name' => $form_state['values']['first_name'],
+    'photo' => $form_state['values']['photo_upload'],
+    'email' => $form_state['values']['email'],
+    'mobile' => $form_state['values']['mobile'],
+    'active_roles' => $form_state['values']['active_roles'],
+    'company' => $form_state['values']['company'],
+    'category' => $form_state['values']['category'],
+    'uid' => $user->uid,
+  );
+  if (empty($form_state['values']['mid'])) {
+    drupal_write_record('adress_book_member', $adress_book_member);
+  }else {
+    $adress_book_member['mid'] = $form_state['values']['mid'];
+    drupal_write_record('adress_book_member', $adress_book_member, 'mid');
+  }
+}
+/**
+ * Implements hook_theme
+ */
+
+function adress_book_theme($variables) {
+  return array(
+    'adress_book_member_avatar' => array(
+      'variables' => array('member' => NULL),
+      'template' => 'adress_book_member_avatar',
+    ),
+  );
+}
+
+function select_member($mid) {
+  global $user;
+  if (empty($user->uid)) {
+    return;
+  }
+
+  $member = db_select('adress_book_member', 'abm')
+    ->fields('abm', array(
+    'mid',
+    'photo',
+    'surname',
+    'first_name',
+    'email',
+    'mobile',
+    'company',
+    'active_roles',
+    'category',
+    'uid'
+  ))
+    ->condition(db_and()
+      ->condition('mid', $mid)
+      ->condition('uid', $user->uid)
+  )
+    ->execute();
+
+  return $member;
+}
+
+function adress_book_delete_member($mid = NULL) {
+  delete_member($mid);
+  drupal_set_message('Delete member');
+  drupal_goto('adress_book');
+}
+
+function delete_member($mid = NULL) {
+  global $user;
+
+  if (empty($user->uid)) {
+    drupal_set_message('Login in', 'error');
+  }
+  if (empty($mid)) {
+    drupal_set_message('Select at least one person', 'error');
+  }
+  db_delete('adress_book_member')
+      ->condition('mid', $mid, is_array($mid) ? 'IN' : '=')
+      ->condition('uid', $user->uid)
+    ->execute();
+}
+
+function adress_book_members_delete_multiple($form, &$form_state) {
+  $mids = array_filter(array_values($form_state['values']['table']));
+  delete_member($mids);
+  drupal_set_message('Delete selected members');
+}
+
+function get_query_select_members($category = NULL) {
+  global $user;
+  if (empty($user->uid)) {
+    return;
+  }
+
+  $query = db_select('adress_book_member', 'abm')
+    ->fields('abm', array(
+    'mid',
+    'surname',
+    'first_name',
+    'email',
+    'mobile',
+    'company',
+    'active_roles',
+    'category',
+    'uid'
+  ))
+    ->condition('abm.uid', $user->uid);
+  if (!empty($category)) {
+    $query->condition('category', $category);
+  }
+  $pager = $query->extend('PagerDefault');
+  $pager->limit(4);
+
+  return $pager->execute();
+}
+
+function get_table_header() {
+  $header = array(
+    t('Surname'),
+    t('First name'),
+    t('Email'),
+    t('Mobile'),
+    t('Company'),
+    t('Active role'),
+    t('Category'),
+    t('Actions')
+  );
+  return $header;
+}
+
+function get_table_options($list) {
+  $options = array();
+
+  while ($row = $list->fetchAssoc()) {
+    $term = taxonomy_term_load($row['category']);
+    $options[$row['mid']] = array(
+      $row['surname'],
+      $row['first_name'],
+      $row['email'],
+      $row['mobile'],
+      $row['company'],
+      $row['active_roles'],
+      $term->name,
+      array(
+        'data' => array(
+          array(
+            '#theme' => 'link',
+            '#text' => 'Edit',
+            '#path' => 'adress_book/edit/' . $row['mid'],
+            '#options' => array(
+              'attributes' => array('class' => array('link-edit-class'), 'id' => 'les-id'),
+              'html' => FALSE,
+            ),
+          ),
+          array(
+            '#theme' => 'link',
+            '#text' => 'Delete',
+            '#path' => 'adress_book/delete/' . $row['mid'],
+            '#options' => array(
+              'attributes' => array('class' => array('link-delete-class'), 'id' => 'les-id'),
+              'html' => FALSE,
+            ),
+          )
+        )
+      ),
+    );
+  }
+  return $options;
+}
+
+function adress_book_view($form, &$form_state) {
+  $category = isset($form_state['values']['category']) ? $form_state['values']['category'] : NULL;
+  $query = get_query_select_members($category);
+  $header = get_table_header();
+  $options = get_table_options($query);
+
+  $options_category = get_all_categories();
+  $form['category'] = array(
+    '#title' => t('Category'),
+    '#type' => 'select',
+    '#options' => $options_category,
+  );
+
+  $form['apply'] = array(
+    '#type' => 'submit',
+    '#value' => t('Apply'),
+    '#submit' => array('filter_members_by_category'),
+  );
+
+  $form['table'] = array(
+    '#type' => 'tableselect',
+    '#header' => $header,
+    '#options' => $options,
+  );
+
+  $form['delete'] = array(
+    '#type' => 'submit',
+    '#value' => t('Delete Selected'),
+    '#submit' => array('adress_book_members_delete_multiple')
+  );
+
+  $form['pager'] = array(
+    '#theme' => 'pager',
+  );
+
+  return $form;
+}
+
+function filter_members_by_category($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
+}
